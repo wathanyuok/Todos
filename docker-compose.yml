@@ -1,0 +1,60 @@
+services:
+  mongo:
+    image: mongo:7
+    container_name: todo-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    command: ["--replSet", "rs0", "--bind_ip_all"]
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.runCommand({ ping: 1 }).ok"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  mongo-init-replica:
+    image: mongo:7
+    depends_on:
+      mongo:
+        condition: service_healthy
+    command: >
+      bash -lc "mongosh --host mongo:27017 --quiet --eval 'rs.initiate()' || true"
+    restart: "no"
+
+  mongo-express:
+    image: mongo-express:1
+    container_name: todo-mongo-express
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    environment:
+      ME_CONFIG_MONGODB_URL: mongodb://mongo:27017/?replicaSet=rs0
+      ME_CONFIG_BASICAUTH: "true"
+      ME_CONFIG_BASICAUTH_USERNAME: admin
+      ME_CONFIG_BASICAUTH_PASSWORD: admin123
+    depends_on:
+      mongo:
+        condition: service_healthy
+      mongo-init-replica:
+        condition: service_completed_successfully
+
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile   # ✅ ต้องอยู่ใต้ build:
+    container_name: todo-server
+    restart: unless-stopped
+    env_file:
+      - ./server/.env
+    ports:
+      - "5600:5500"
+    depends_on:
+      mongo:
+        condition: service_healthy
+      mongo-init-replica:
+        condition: service_completed_successfully
+
+volumes:
+  mongo_data:
