@@ -1,33 +1,37 @@
 # 📌 Todos Project
 
-โปรเจกต์นี้เป็นระบบ **Todo List** ที่แยก Frontend และ Backend ชัดเจน พร้อมรันผ่าน **Docker Compose** ได้ทันที
+โปรเจกต์นี้เป็นระบบ **Todo List** ที่แยก Frontend และ Backend ชัดเจน รันได้ทั้ง **Docker Compose** และ **Manual**
 
 ---
 
 ## 🚀 การรันโปรเจกต์
 
-### 1. รันด้วย Docker Compose
+### 1) รันด้วย Docker Compose
 ```bash
 docker compose up -d --build
 ```
-Docker จะสร้างและรันบริการดังนี้:
 
-| Service  | Port Local | Description | URL (ตอนรันเสร็จ) |
-|----------|-----------|-------------|--------------------|
-| **Frontend** | `5173`     | React/Vite | [http://localhost:5173](http://localhost:5173) |
-| **Backend**  | `4000`     | Node.js API | [http://localhost:4000/api](http://localhost:4000/api) |
-| **MongoDB**  | `27017`    | Database   | ใช้ MongoDB Compass หรือ CLI เชื่อมต่อได้ |
+**Services & Ports (Host → Container):**
+
+| Service    | Host Port | Container Port | Description    | URL (ตอนรันเสร็จ)                 |
+|------------|-----------|----------------|----------------|------------------------------------|
+| Frontend   | 5173      | 5173           | React/Vite     | http://localhost:5173              |
+| Backend    | 5600      | 5500           | Node.js API    | http://localhost:5600/api          |
+| MongoDB    | 27017     | 27017          | Database       | ใช้ Compass: mongodb://localhost:27017 |
+
+> หมายเหตุ: ต้องมี mapping ใน `docker-compose.yml` ประมาณนี้สำหรับ backend:  
+> `ports: ["5600:5500"]` และในคอนเทนเนอร์ตั้ง `PORT=5500`
 
 ---
 
-### 2. รันแบบ Manual (ไม่ใช้ Docker)
+### 2) รันแบบ Manual (ไม่ใช้ Docker)
 #### Backend
 ```bash
 cd server
 npm install
-npm run dev  # หรือ npm start
+npm run dev    # ให้เปิดที่พอร์ต 5500
 ```
-- URL: `http://localhost:4000/api`
+- URL: `http://localhost:5500/api`
 
 #### Frontend
 ```bash
@@ -41,16 +45,28 @@ npm run dev
 
 ## 🔑 Environment Variables
 
-### Backend (`server/.env`)
+### เมื่อรันด้วย **Docker** (`server/.env`)
 ```env
-PORT=4000
+PORT=5500
 MONGO_URI=mongodb://mongo:27017/todos
+CLIENT_ORIGIN=http://localhost:5173
+```
+
+### เมื่อรันแบบ **Manual** บนเครื่อง
+```env
+# server/.env
+PORT=5500
+MONGO_URI=mongodb://localhost:27017/todos
 CLIENT_ORIGIN=http://localhost:5173
 ```
 
 ### Frontend (`client/.env`)
 ```env
-VITE_API_URL=http://localhost:4000/api
+# ถ้าใช้ Docker
+VITE_API_URL=http://localhost:5600/api
+
+# ถ้า Manual
+# VITE_API_URL=http://localhost:5500/api
 ```
 
 ---
@@ -63,3 +79,4 @@ VITE_API_URL=http://localhost:4000/api
   docker compose down
   ```
 
+---
